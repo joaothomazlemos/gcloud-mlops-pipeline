@@ -37,7 +37,7 @@ steps:
   name: 'gcr.io/cloud-builders/gcloud'
   args: [
       'dataproc', 'jobs', 'submit', 'pyspark', 'data_pipeline/pyspark_etl.py',
-      '--cluster=ephemeral-churn-cluster-$(BUILD_ID)', # Use an ephemeral cluster
+      '--cluster=ephemeral-$(BUILD_ID)', # Use an ephemeral cluster
       '--region=${_REGION}',
       '--project=${_BQ_PROJECT_ID}', # Explicitly pass project for Dataproc
       '--driver-log-levels', 'root=FATAL', # Suppress verbose logs
