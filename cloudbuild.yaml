@@ -4,17 +4,18 @@ timeout: 3600s # 1 hour timeout for the entire build
 # Define substitutions for easy modification
 substitutions:
   # >>> UPDATE THESE WITH YOUR ACTUAL GCS/BQ/GCP DETAILS <<<
-  _RAW_DATA_GCS_URI: gs://your-gcp-project-id-raw-data-lake/Customer Churn.csv # Where you manually upload the raw CSV
-  _BQ_PROJECT_ID: your-gcp-project-id # Your GCP Project ID for BigQuery
-  _BQ_DATASET_NAME: your_bq_dataset_name # The BigQuery dataset you create (e.g., ml_features)
-  _BQ_FEATURE_TABLE: your-gcp-project-id.your_bq_dataset_name.churn_features # Full BQ table ID
-  _MODEL_ARTIFACT_GCS_DIR: gs://your-gcp-project-id-ml-models/churn_predictor_$(BUILD_ID) # GCS path for model artifacts
+  _BUCKET_NAME: first-bucket-ml
+  _RAW_DATA_GCS_URI: gs://first-bucket-ml/churn.csv # Where you manually upload the raw CSV
+  _BQ_PROJECT_ID: vocal-day-462221-r6 # Your GCP Project ID for BigQuery
+  _BQ_DATASET_NAME: churn_ml_feature_store # The BigQuery dataset you create (e.g., ml_features)
+  _BQ_FEATURE_TABLE: vocal-day-462221-r6.churn_ml_feature_store.churn_features # Full BQ table ID
+  _MODEL_ARTIFACT_GCS_DIR: gs://vocal-day-462221-r6-ml-models/churn_predictor_$(BUILD_ID) # GCS path for model artifacts
   _MODEL_NAME_REGISTRY: customer_churn_predictor_model
   _ENDPOINT_DISPLAY_NAME: churn-prediction-endpoint
-  _REGION: us-central1 # Vertex AI and Dataproc region
+  _REGION: us-east1 # Vertex AI and Dataproc region
   _K6_VM_NAME: churn-k6-load-gen-$(BUILD_ID)
-  _K6_REGION: us-central1 # K6 VM region (ideally same as endpoint)
-  _MONITORING_EMAIL: your-email@example.com # <<< IMPORTANT: CHANGE THIS EMAIL FOR ALERTS!
+  _K6_REGION: us-east1 # K6 VM region (ideally same as endpoint)
+  _MONITORING_EMAIL: joaothomazlemos@gmail.com
   # <<< ------------------------------------------------->>>
 
 steps:
