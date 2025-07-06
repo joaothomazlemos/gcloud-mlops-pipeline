@@ -1,4 +1,4 @@
-timeout: 3600s
+timeout: 3600s # tesat
 logsBucket: gs://first-bucket-ml/cloudbuild-logs
 steps:
 - name: 'ubuntu'
