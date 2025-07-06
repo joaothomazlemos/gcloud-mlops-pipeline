@@ -25,4 +25,3 @@ steps:
         gsutil ls "${_RAW_DATA_GCS_URI}" || { echo "Raw data file NOT FOUND. Please upload 'Customer Churn.csv' to '${_RAW_DATA_GCS_URI}'"; exit 1; }
 
         echo "Raw data file found."
-options: 'us-central1'
