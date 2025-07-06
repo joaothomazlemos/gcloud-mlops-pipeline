@@ -1,4 +1,3 @@
----
 timeout: 3600s
 substitutions:
   _BUCKET_NAME: first-bucket-ml
