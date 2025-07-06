@@ -23,7 +23,6 @@ steps:
 #    You need to manually place Customer Churn.csv in the _RAW_DATA_GCS_URI path once.
 - id: 'Verify Raw Data in GCS'
   name: 'gcr.io/cloud-builders/gsutil'
-  args: ['ls', '${_RAW_DATA_GCS_URI}']
   entrypoint: 'bash'
   args:
     - '-c'

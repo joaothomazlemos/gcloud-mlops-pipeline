@@ -37,19 +37,22 @@ FEATURES = [
 ]
 
 
-@app.before_first_request
+model_loaded = False
+
+
+@app.before_request
 def _load_model():
-    global model
-    model_path = os.path.join(MODEL_DIR, "model.joblib")
-    logger.info(f"Attempting to load model from {model_path}...")
-    try:
-        model = joblib.load(model_path)
-        logger.info("Model loaded successfully.")
-    except Exception as e:
-        logger.error(f"Failed to load model from {model_path}: {e}")
-        # In a real serving environment, you might want to return a 500 error or similar
-        # before the first request if the model fails to load.
-        raise
+    global model, model_loaded
+    if not model_loaded:
+        model_path = os.path.join(MODEL_DIR, "model.joblib")  # type: ignore
+        logger.info(f"Attempting to load model from {model_path}...")
+        try:
+            model = joblib.load(model_path)
+            model_loaded = True
+            logger.info("Model loaded successfully.")
+        except Exception as e:
+            logger.error(f"Failed to load model from {model_path}: {e}")
+            raise
 
 
 @app.route("/predict", methods=["POST"])
@@ -125,7 +128,9 @@ if __name__ == "__main__":
 
     try:
         _load_model()
-        app.run(debug=True, host="0.0.0.0", port=os.environ.get("AIP_HTTP_PORT", 8080))
-    except Exception as e:
+        app.run(
+            debug=True, host="0.0.0.0", port=int(os.environ.get("AIP_HTTP_PORT", 8080))
+        )
+    except Exception:  # noqa
         logger.exception("Failed to start Flask app.")
         sys.exit(1)
