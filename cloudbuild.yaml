@@ -9,9 +9,9 @@ substitutions:
   _MODEL_ARTIFACT_GCS_DIR: gs://vocal-day-462221-r6-ml-models/churn_predictor_$(BUILD_ID)
   _MODEL_NAME_REGISTRY: customer_churn_predictor_model
   _ENDPOINT_DISPLAY_NAME: churn-prediction-endpoint
-  _REGION: us-east1
+  _REGION: us-central1
   _K6_VM_NAME: churn-k6-load-gen-$(BUILD_ID)
-  _K6_REGION: us-east1
+  _K6_REGION: us-central1
   _MONITORING_EMAIL: joaothomazlemos@gmail.com
 steps:
   - id: Verify Raw Data in GCS
@@ -25,23 +25,4 @@ steps:
         gsutil ls "${_RAW_DATA_GCS_URI}" || { echo "Raw data file NOT FOUND. Please upload 'Customer Churn.csv' to '${_RAW_DATA_GCS_URI}'"; exit 1; }
 
         echo "Raw data file found."
-  - id: Run PySpark ETL to BigQuery
-    name: gcr.io/cloud-builders/gcloud
-    args:
-      - dataproc
-      - jobs
-      - submit
-      - pyspark
-      - data_pipeline/pyspark_etl.py
-      - --cluster=ephemeral-$(BUILD_ID)
-      - --region=${_REGION}
-      - --project=${_BQ_PROJECT_ID}
-      - --driver-log-levels
-      - root=FATAL
-      - --jars
-      - gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12.jar
-      - --
-      - ${_RAW_DATA_GCS_URI}
-      - ${_BQ_FEATURE_TABLE}
-    waitFor:
-      - Verify Raw Data in GCS
+options: us-central1
