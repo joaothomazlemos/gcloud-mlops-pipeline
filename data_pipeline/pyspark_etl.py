@@ -82,14 +82,7 @@ if __name__ == "__main__":
     # Initialize Spark Session
     # For Dataproc, spark-bigquery-with-dependencies is typically provided,
     # but explicitly adding it here ensures it's configured.
-    spark = (
-        SparkSession.builder.appName("ChurnFeatureEngineering")
-        .config(
-            "spark.jars.packages",
-            "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.29.1",
-        )
-        .getOrCreate()
-    )
+    spark = SparkSession.builder.appName("ChurnFeatureEngineering").getOrCreate()
 
     if len(sys.argv) != 3:
         logger.error("Usage: pyspark_etl.py <input_gcs_path> <output_bq_table>")

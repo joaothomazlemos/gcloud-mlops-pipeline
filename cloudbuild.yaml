@@ -51,7 +51,7 @@ steps:
       - '--cluster=ephemeral-churn-cluster-$SHORT_SHA'
       - '--region=${_REGION}'
       - '--project=$PROJECT_ID'
-      - '--jars=gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.22.0.jar'
+      - '--jars=gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.34.0.jar'
       - '--' # Argument separator
       - '${_RAW_DATA_GCS_URI}'
       - '${_BQ_FEATURE_TABLE}'
