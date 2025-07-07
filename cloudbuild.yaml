@@ -56,19 +56,6 @@ steps:
       - '${_RAW_DATA_GCS_URI}'
       - '${_BQ_FEATURE_TABLE}'
     waitFor: ['Create Dataproc Cluster'] # Wait for the cluster to be ready
-
-  # STEP 3: Delete the cluster after the job is done to save costs.
-  - id: 'Delete Dataproc Cluster'
-    name: 'gcr.io/cloud-builders/gcloud'
-    args:
-      - 'dataproc'
-      - 'clusters'
-      - 'delete'
-      - 'ephemeral-churn-cluster-$BUILD_ID'
-      - '--region=${_REGION}'
-      - '--project=${_PROJECT_ID}'
-      - '--quiet'
-    waitFor: ['Run PySpark ETL to BigQuery'] # Wait for the job to finish
   - id: Build Training Docker Image
     name: gcr.io/cloud-builders/docker
     args:
@@ -219,4 +206,14 @@ steps:
           --enable-dashboard \
           --model=$$MODEL_ID
     waitFor:
-      - Deploy Model to Vertex AI Endpoint
+      - Deploy Model to Vertex AI Endpoint  # STEP 3: Delete the cluster after the job is done to save costs.
+  - id: 'Delete Dataproc Cluster'
+    name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'dataproc'
+      - 'clusters'
+      - 'delete'
+      - 'ephemeral-churn-cluster-$BUILD_ID'
+      - '--region=${_REGION}'
+      - '--project=${_PROJECT_ID}'
+      - '--quiet'
