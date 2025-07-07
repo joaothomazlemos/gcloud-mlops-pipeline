@@ -288,7 +288,7 @@ steps:
           --boot-disk-size=20GB \
           --scopes=https://www.googleapis.com/auth/cloud-platform \
           --metadata-from-file=startup-script=/tmp/k6_startup_script.sh \
-          --labels=purpose=k6-load-test,cloud-build-id=`${BUILD_ID}
+          --labels=purpose=k6-load-test,cloud-build-id=${BUILD_ID}
         echo "K6 Load Generator VM creation command issued."
     waitFor:
       - Upload K6 Script to GCS
