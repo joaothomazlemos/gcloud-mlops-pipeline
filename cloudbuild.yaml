@@ -34,7 +34,7 @@ steps:
       - 'create'
       - 'ephemeral-churn-cluster-$BUILD_ID' # Use ${} for clarity
       - '--region=${_REGION}'
-      - '--project=${_PROJECT_ID}' # Use the built-in substitution
+      - '--project=$PROJECT_ID' # Use the built-in substitution
       - '--single-node' # Use a single node for cheaper, simpler ETL jobs
       - '--quiet'
     waitFor: ['Verify Raw Data in GCS']
@@ -50,7 +50,7 @@ steps:
       - 'data_pipeline/pyspark_etl.py'
       - '--cluster=ephemeral-churn-cluster-$BUILD_ID'
       - '--region=${_REGION}'
-      - '--project=${_PROJECT_ID}'
+      - '--project=$PROJECT_ID'
       - '--jars=gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.22.0.jar'
       - '--' # Argument separator
       - '${_RAW_DATA_GCS_URI}'
