@@ -6,11 +6,11 @@ substitutions:
   _BQ_PROJECT_ID: vocal-day-462221-r6
   _BQ_DATASET_NAME: churn_ml_feature_store
   _BQ_FEATURE_TABLE: vocal-day-462221-r6.churn_ml_feature_store.churn_features
-  _MODEL_ARTIFACT_GCS_DIR: gs://vocal-day-462221-r6-ml-models/churn_predictor_${_BUILD_ID}
+  _MODEL_ARTIFACT_GCS_DIR: gs://vocal-day-462221-r6-ml-models/churn_predictor_${BUILD_ID}
   _MODEL_NAME_REGISTRY: customer_churn_predictor_model
   _ENDPOINT_DISPLAY_NAME: churn-prediction-endpoint
   _REGION: us-east1
-  _K6_VM_NAME: churn-k6-load-gen-${_BUILD_ID}
+  _K6_VM_NAME: churn-k6-load-gen-${BUILD_ID}
   _K6_REGION: us-east1
   _MONITORING_EMAIL: joaothomazlemos@gmail.com
 steps:
@@ -288,7 +288,7 @@ steps:
           --boot-disk-size=20GB \
           --scopes=https://www.googleapis.com/auth/cloud-platform \
           --metadata-from-file=startup-script=/tmp/k6_startup_script.sh \
-          --labels=purpose=k6-load-test,cloud-build-id=`{_BUILD_ID}
+          --labels=purpose=k6-load-test,cloud-build-id=`${BUILD_ID}
         echo "K6 Load Generator VM creation command issued."
     waitFor:
       - Upload K6 Script to GCS
