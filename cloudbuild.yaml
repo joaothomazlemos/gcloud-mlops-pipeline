@@ -89,10 +89,10 @@ steps:
     args:
       - -c
       - >
-        MODEL_ID=$(gcloud beta ai models list
+        MODEL_ID=${gcloud beta ai models list
         --filter="displayName=${_MODEL_NAME_REGISTRY}" --format="value(name)"
         --sort-by="createTime" --limit=1 --project=$PROJECT_ID
-        --region=${_REGION})
+        --region=${_REGION}}
 
         echo "export MODEL_ID=$MODEL_ID" > /workspace/model_id.env
     waitFor:
@@ -142,7 +142,7 @@ steps:
           --sync
         # Capture deployed model ID for monitoring setup
 
-        DEPLOYED_MODEL_ID=$(gcloud beta ai endpoints describe $ENDPOINT_ID --format="value(deployedModels[0].id)" --project=$PROJECT_ID --region=${_REGION})
+        DEPLOYED_MODEL_ID=${gcloud beta ai endpoints describe $ENDPOINT_ID --format="value(deployedModels[0].id)" --project=$PROJECT_ID --region=${_REGION}}
 
         echo "export DEPLOYED_MODEL_ID=$DEPLOYED_MODEL_ID" >> /workspace/endpoint_id.env # Append to the same file
     waitFor:
