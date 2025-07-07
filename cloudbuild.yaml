@@ -89,12 +89,12 @@ steps:
     args:
       - -c
       - >
-        MODEL_ID=${gcloud beta ai models list
+        MODEL_ID=$(gcloud beta ai models list
         --filter="displayName=${_MODEL_NAME_REGISTRY}" --format="value(name)"
         --sort-by="createTime" --limit=1 --project=$PROJECT_ID
-        --region=${_REGION}}
+        --region=${_REGION})
 
-        echo "export MODEL_ID=$MODEL_ID" > /workspace/model_id.env
+        echo "export MODEL_ID=$$MODEL_ID" > /workspace/model_id.env
     waitFor:
       - Upload Model to Vertex AI Registry
   - id: Get or Create Endpoint ID
@@ -107,16 +107,16 @@ steps:
         --filter="displayName=${_ENDPOINT_DISPLAY_NAME}" --format="value(name)"
         --limit=1 --project=$PROJECT_ID --region=${_REGION})
 
-        if [ -z "$ENDPOINT_ID" ]; then
+        if [ -z "$$ENDPOINT_ID" ]; then
           echo "Endpoint not found. Creating new endpoint..."
           ENDPOINT_CREATE_RESPONSE=$(gcloud beta ai endpoints create --display-name=${_ENDPOINT_DISPLAY_NAME} --project=$PROJECT_ID --region=${_REGION} --format="json")
           ENDPOINT_ID=$(echo "$ENDPOINT_CREATE_RESPONSE" | jq -r '.name')
-          echo "New endpoint created: $ENDPOINT_ID"
+          echo "New endpoint created: $$ENDPOINT_ID"
         else
-          echo "Found existing endpoint: $ENDPOINT_ID"
+          echo "Found existing endpoint: $$ENDPOINT_ID"
         fi
 
-        echo "export ENDPOINT_ID=$ENDPOINT_ID" > /workspace/endpoint_id.env
+        echo "export ENDPOINT_ID=$$ENDPOINT_ID" > /workspace/endpoint_id.env
     waitFor:
       - Get Model ID
   - id: Deploy Model to Vertex AI Endpoint
@@ -129,10 +129,10 @@ steps:
 
         source /workspace/endpoint_id.env
 
-        echo "Deploying model $MODEL_ID to endpoint $ENDPOINT_ID"
+        echo "Deploying model $$MODEL_ID to endpoint $$ENDPOINT_ID"
 
-        gcloud beta ai endpoints deploy-model $ENDPOINT_ID \
-          --model=$MODEL_ID \
+        gcloud beta ai endpoints deploy-model $$ENDPOINT_ID \
+          --model=$$MODEL_ID \
           --display-name=${_MODEL_NAME_REGISTRY}-deployed \
           --machine-type=n1-standard-2 \
           --accelerator=count=0 \
@@ -142,9 +142,9 @@ steps:
           --sync
         # Capture deployed model ID for monitoring setup
 
-        DEPLOYED_MODEL_ID=${gcloud beta ai endpoints describe $ENDPOINT_ID --format="value(deployedModels[0].id)" --project=$PROJECT_ID --region=${_REGION}}
+        DEPLOYED_MODEL_ID=$(gcloud beta ai endpoints describe $$ENDPOINT_ID --format="value(deployedModels[0].id)" --project=$PROJECT_ID --region=${_REGION})
 
-        echo "export DEPLOYED_MODEL_ID=$DEPLOYED_MODEL_ID" >> /workspace/endpoint_id.env # Append to the same file
+        echo "export DEPLOYED_MODEL_ID=$$DEPLOYED_MODEL_ID" >> /workspace/endpoint_id.env
     waitFor:
       - Get or Create Endpoint ID
   - id: Configure Vertex AI Model Monitoring
@@ -157,13 +157,13 @@ steps:
 
         source /workspace/endpoint_id.env
 
-        echo "Configuring monitoring for endpoint $ENDPOINT_ID, model $MODEL_ID"
+        echo "Configuring monitoring for endpoint $$ENDPOINT_ID, model $$MODEL_ID"
 
         gcloud beta ai model-monitoring-jobs create \
           --display-name=churn_data_drift_monitor \
           --project=$PROJECT_ID \
           --region=${_REGION} \
-          --endpoint=projects/$PROJECT_ID/locations/${_REGION}/endpoints/$ENDPOINT_ID \
+          --endpoint=projects/$PROJECT_ID/locations/${_REGION}/endpoints/$$ENDPOINT_ID \
           --feature-attributions-skew-detection-logging-sampling-rate=0.1 \
           --feature-attributions-drift-detection-logging-sampling-rate=0.1 \
           --data-source-bq-table=${_BQ_FEATURE_TABLE} \
@@ -173,137 +173,6 @@ steps:
           --predict-instance-schema-uri=gs://cloud-aiplatform/schema/predict/instance/tabular_classification_1.0.yaml \
           --schedule-interval=24h \
           --enable-dashboard \
-          --model=$MODEL_ID
+          --model=$$MODEL_ID
     waitFor:
       - Deploy Model to Vertex AI Endpoint
-  - id: Upload K6 Script to GCS
-    name: gcr.io/cloud-builders/gsutil
-    args:
-      - cp
-      - k6/churn_load_test.js
-      - gs://${_BQ_PROJECT_ID}-ml-models/k6/churn_load_test.js
-    waitFor:
-      - Configure Vertex AI Model Monitoring
-  - id: Create K6 Load Generator VM
-    name: gcr.io/cloud-builders/gcloud
-    entrypoint: bash
-    args:
-      - -c
-      - >
-        source /workspace/endpoint_id.env
-
-
-        # Get the actual endpoint URL dynamically after deployment
-
-        ENDPOINT_URI=$(gcloud beta ai endpoints describe $ENDPOINT_ID --format="value(publicEndpoint.publicEndpointDedicatedResources.uri)" --project=$PROJECT_ID --region=${_REGION})"
-
-        if [ -z "$ENDPOINT_URI" ]; then
-          echo "Error: Could not retrieve Endpoint URI. K6 VM creation aborted."
-          exit 1
-        fi
-
-
-        echo "K6 Load Generator VM will target endpoint: $ENDPOINT_URI"
-
-
-        # Create startup script dynamically with endpoint URL and project ID
-
-        cat <<EOF > /tmp/k6_startup_script.sh
-
-        #!/bin/bash
-
-        set -euxo pipefail # Exit immediately if a command exits with a non-zero status.
-
-
-        echo "Starting K6 VM startup script..."
-
-
-        # Install K6
-
-        sudo apt-get update
-
-        sudo apt-get install -y apt-transport-https gnupg
-
-        echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-
-        sudo apt-get update
-
-        sudo apt-get install -y k6
-
-
-        # Install jq for parsing gcloud output
-
-        sudo apt-get install -y jq
-
-
-        # Get the actual endpoint URL for K6 to use (in case it changed or was dynamic)
-
-        # This needs gcloud on the VM, so ensure VM service account has Vertex AI Predictor.
-
-        # Already sourced ENDPOINT_ID from metadata
-
-        ACTUAL_ENDPOINT_URI="\$(gcloud beta ai endpoints describe $ENDPOINT_ID --format="value(publicEndpoint.publicEndpointDedicatedResources.uri)" --project=$PROJECT_ID --region=${_REGION})"
-
-        echo "K6 will send requests to: \$ACTUAL_ENDPOINT_URI"
-
-
-        # Copy K6 script from GCS to the VM
-
-        gsutil cp gs://${_BQ_PROJECT_ID}-ml-models/k6/churn_load_test.js /tmp/churn_load_test.js
-
-        chmod +x /tmp/churn_load_test.js # Make it executable if needed (though k6 runs it)
-
-
-        echo "Running K6 test in background..."
-
-        # Run K6 test in the background. K6 will report its own progress.
-
-        # The duration is set in the k6 script itself.
-
-        k6 run /tmp/churn_load_test.js --env ENDPOINT_URL="\$ACTUAL_ENDPOINT_URI" --quiet &> /var/log/k6_run.log &
-
-        echo "K6 process started. Logs in /var/log/k6_run.log"
-
-
-        # Optional: Add a sleep here if you want the VM to stay alive for K6 to finish.
-
-        # Or use a longer duration in the k6 script options.
-
-        # For short bursts, this is fine. For continuous load, you'd manage VM lifecycle differently.
-
-        # sleep 300 # Keep VM alive for 5 minutes
-
-        echo "Startup script finished."
-
-        EOF
-
-
-        # Create the Compute Engine instance
-
-        gcloud compute instances create ${_K6_VM_NAME} \
-          --zone=${_K6_REGION}-a \
-          --machine-type=e2-small \
-          --image-family=debian-11 \
-          --image-project=debian-cloud \
-          --boot-disk-size=20GB \
-          --scopes=https://www.googleapis.com/auth/cloud-platform \
-          --metadata-from-file=startup-script=/tmp/k6_startup_script.sh \
-          --labels=purpose=k6-load-test,cloud-build-id=$BUILD_ID
-        echo "K6 Load Generator VM creation command issued."
-    waitFor:
-      - Upload K6 Script to GCS
-  - id: Delete K6 Load Generator VM
-    name: gcr.io/cloud-builders/gcloud
-    entrypoint: bash
-    args:
-      - -c
-      - >
-        echo "Attempting to delete K6 VM: ${_K6_VM_NAME} in zone
-        ${_K6_REGION}-a"
-
-        gcloud compute instances delete ${_K6_VM_NAME} \
-          --zone=${_K6_REGION}-a \
-          --quiet || { echo "K6 VM ${_K6_VM_NAME} not found or already deleted. Continuing."; }
-        echo "K6 VM deletion command issued."
-    waitFor:
-      - Create K6 Load Generator VM
