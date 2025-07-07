@@ -25,6 +25,50 @@ steps:
         gsutil ls "${_RAW_DATA_GCS_URI}" || { echo "Raw data file NOT FOUND. Please upload 'Customer Churn.csv' to '${_RAW_DATA_GCS_URI}'"; exit 1; }
 
         echo "Raw data file found."
+    # STEP 1: Create the ephemeral Dataproc cluster first.
+  - id: 'Create Dataproc Cluster'
+    name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'dataproc'
+      - 'clusters'
+      - 'create'
+      - 'ephemeral-churn-cluster-$BUILD_ID' # Use ${} for clarity
+      - '--region=${_REGION}'
+      - '--project=${_PROJECT_ID}' # Use the built-in substitution
+      - '--single-node' # Use a single node for cheaper, simpler ETL jobs
+      - '--quiet'
+    waitFor: ['Verify Raw Data in GCS']
+
+  # STEP 2: Run your PySpark job on the newly created cluster.
+  - id: 'Run PySpark ETL to BigQuery'
+    name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'dataproc'
+      - 'jobs'
+      - 'submit'
+      - 'pyspark'
+      - 'data_pipeline/pyspark_etl.py'
+      - '--cluster=ephemeral-churn-cluster-$BUILD_ID'
+      - '--region=${_REGION}'
+      - '--project=${_PROJECT_ID}'
+      - '--jars=gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.22.0.jar'
+      - '--' # Argument separator
+      - '${_RAW_DATA_GCS_URI}'
+      - '${_BQ_FEATURE_TABLE}'
+    waitFor: ['Create Dataproc Cluster'] # Wait for the cluster to be ready
+
+  # STEP 3: Delete the cluster after the job is done to save costs.
+  - id: 'Delete Dataproc Cluster'
+    name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'dataproc'
+      - 'clusters'
+      - 'delete'
+      - 'ephemeral-churn-cluster-$BUILD_ID'
+      - '--region=${_REGION}'
+      - '--project=${_PROJECT_ID}'
+      - '--quiet'
+    waitFor: ['Run PySpark ETL to BigQuery'] # Wait for the job to finish
   - id: Build Training Docker Image
     name: gcr.io/cloud-builders/docker
     args:
