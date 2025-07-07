@@ -32,7 +32,7 @@ steps:
       - 'dataproc'
       - 'clusters'
       - 'create'
-      - 'ephemeral-churn-cluster-$BUILD_ID' # Use ${} for clarity
+      - 'ephemeral-churn-cluster-$SHORT_SHA' # Use ${} for clarity
       - '--region=${_REGION}'
       - '--project=$PROJECT_ID' # Use the built-in substitution
       - '--single-node' # Use a single node for cheaper, simpler ETL jobs
