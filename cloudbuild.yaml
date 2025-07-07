@@ -110,7 +110,7 @@ steps:
         if [ -z "$$ENDPOINT_ID" ]; then
           echo "Endpoint not found. Creating new endpoint..."
           ENDPOINT_CREATE_RESPONSE=$(gcloud beta ai endpoints create --display-name=${_ENDPOINT_DISPLAY_NAME} --project=$PROJECT_ID --region=${_REGION} --format="json")
-          ENDPOINT_ID=$(echo "$ENDPOINT_CREATE_RESPONSE" | jq -r '.name')
+          ENDPOINT_ID=$(echo "$$ENDPOINT_CREATE_RESPONSE" | jq -r '.name')
           echo "New endpoint created: $$ENDPOINT_ID"
         else
           echo "Found existing endpoint: $$ENDPOINT_ID"
